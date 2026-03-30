@@ -1,0 +1,26 @@
+export const brand = {
+  companyName: 'Signal & Structure AI',
+  productName: 'Signal Vault',
+  domain: 'signalstructure.ai',
+  colors: {
+    primary: '#1B2B4B',
+    accent: '#C17A3A',
+    background: '#F5F0EB',
+    text: '#1B2B4B',
+    muted: '#6B7280',
+    success: '#2D8A5E',
+    error: '#C4423C',
+    warning: '#D4920B',
+    border: '#E5E0DB',
+  },
+  fonts: {
+    heading: 'DM Serif Display',
+    body: 'DM Sans',
+    mono: 'JetBrains Mono',
+  },
+  logo: '/logo.svg',
+  supportEmail: 'support@signalstructure.ai',
+  footerText: 'Signal & Structure AI',
+  tagline: 'Secure credential vault for AI agents',
+  description: 'Connect your accounts safely. Your AI agents get scoped, time-limited access. You stay in control.',
+};
