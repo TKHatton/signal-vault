@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import ConnectionCard from "@/components/vault/ConnectionCard";
 import { AVAILABLE_SERVICES } from "@/lib/connections";
 import { ConnectionStatus, ConnectionType } from "@/lib/types";
@@ -17,9 +18,35 @@ interface ConnectionData {
 }
 
 export default function VaultPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin text-copper" /></div>}>
+      <VaultContent />
+    </Suspense>
+  );
+}
+
+function VaultContent() {
   const [connections, setConnections] = useState<ConnectionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  // Handle OAuth callback — when user returns from Auth0 with ?connected=google-oauth2
+  useEffect(() => {
+    const connected = searchParams.get("connected");
+    if (connected) {
+      // Save the connection to Supabase after successful OAuth
+      fetch("/api/connections/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ connection: connected }),
+      }).then(() => {
+        fetchConnections();
+        // Clean up URL
+        window.history.replaceState({}, "", "/vault");
+      });
+    }
+  }, [searchParams]);
 
   const fetchConnections = async () => {
     try {
@@ -43,22 +70,13 @@ export default function VaultPage() {
     (c) => c.status === "active"
   ).length;
 
-  const handleConnect = async (connection: ConnectionType) => {
+  const handleConnect = (connection: ConnectionType) => {
     setConnecting(connection);
-    try {
-      const res = await fetch("/api/connections/connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ connection }),
-      });
-      if (res.ok) {
-        await fetchConnections();
-      }
-    } catch (error) {
-      console.error("Failed to connect:", error);
-    } finally {
-      setConnecting(null);
-    }
+    // Redirect to Auth0 OAuth flow for this connection
+    // This goes: browser → /api/connections/connect?connection=google-oauth2
+    //          → Auth0 → Google OAuth → Auth0 callback
+    //          → redirect back to /vault?connected=google-oauth2
+    window.location.href = `/api/connections/connect?connection=${connection}`;
   };
 
   const handleDisconnect = async (connection: ConnectionType) => {
