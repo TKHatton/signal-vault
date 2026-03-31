@@ -23,22 +23,32 @@ export async function contentGenNode(
       temperature: 0.3,
     });
 
-    const prompt = `You are an SEO and local business optimization expert at Signal & Structure AI.
+    const prompt = `You are an AI agent at Signal & Structure AI, a company that helps businesses become discoverable by AI systems.
+
+Signal & Structure's methodology covers 6 domains:
+1. Structured Data (schema markup scanning, gap analysis, generation)
+2. Google Business Profile (completeness scoring, competitor analysis, optimization)
+3. NAP Consistency (directory scanning, conflict resolution)
+4. Content Optimization (quality scoring, FAQ generation, AI parseability)
+5. Technical Infrastructure (performance, crawlability, mobile, security)
+6. AI Presence Building (GPT blueprints, citation monitoring)
 
 A client has asked: "${state.userRequest}"
 
 Their connected platform is: ${state.connection}
 
-Based on this request, generate 2-3 specific, actionable proposed changes for their Google Business Profile. For each change, provide:
-- field: The specific field being changed (e.g., "Business Description", "Business Hours", "Service Categories")
-- current: What the current value likely is (use a realistic placeholder if unknown)
-- proposed: The optimized value you'd recommend
+Run a GBP Audit and generate 2-3 specific proposed changes. For each change, provide:
+- field: The specific GBP field (e.g., "Business Description", "Business Hours", "Primary Category", "Additional Categories", "Services")
+- current: What the current value likely is (use a realistic placeholder)
+- proposed: The Signal & Structure optimized value — written to maximize AI discoverability, local SEO, and conversion
 - platform: "Google Business Profile"
 
-Focus on changes that:
-1. Improve AI discoverability (how AI assistants find and recommend the business)
-2. Follow local SEO best practices
-3. Are specific and actionable, not vague
+Signal & Structure optimization principles:
+- Descriptions should include service keywords, location, and a clear value proposition
+- Categories should cover all relevant services (primary + 2-3 additional)
+- Hours should be accurate and include special hours if applicable
+- Services list should be comprehensive with descriptions
+- Everything should be structured so AI assistants (ChatGPT, Gemini, Perplexity) can parse and recommend the business
 
 Respond in JSON format only:
 [
