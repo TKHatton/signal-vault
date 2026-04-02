@@ -1,6 +1,6 @@
 # Signal Vault - Session Log
 
-**Last Updated:** 2026-03-31 (Session 3)
+**Last Updated:** 2026-04-02 (Session 4)
 
 ## Project Overview
 
@@ -9,10 +9,10 @@
 - **Tech Stack:** Next.js 14, React 18, TypeScript, TailwindCSS
 - **Key Integrations:** Auth0 (@auth0/nextjs-auth0 v4), Supabase, LangChain/LangGraph, OpenAI
 - **Repo:** https://github.com/TKHatton/signal-vault.git
-- **Branch:** main (3 commits)
+- **Branch:** main (4 commits)
 - **Hackathon:** "Authorized to Act: Auth0 for AI Agents" — Deadline April 6, 2026
 - **Deploy Target:** Netlify (NOT Vercel)
-- **Goal:** Done in 2 days (by April 2)
+- **Goal:** Ship today (April 2) — 4 days before deadline
 
 ---
 
@@ -65,6 +65,16 @@
 - Supabase tables confirmed working (SQL ran successfully)
 - Commits: `b401915` and `aef2590`
 
+### Session 4 (April 2) — Ship Day Prep
+- Full repo review: confirmed all code, types, API routes, pipeline nodes intact
+- `npm install` — all dependencies installed successfully
+- `npm run build` — **passes clean with zero errors** (14/14 pages compiled)
+  - Only warnings: missing .env.local (expected) and Edge Runtime compat notes (non-blocking)
+- Created ship-day execution plan: 4 phases (setup → test → deploy → demo)
+- Decision: **skip WordPress integration** — GBP alone demonstrates full Token Vault pattern
+- Remaining work is all testing + deployment (no new features needed)
+- Commits: `e5a8001` (session log/prompt update from Session 3)
+
 ### Auth0 Dashboard Status (Verified March 31)
 - Signal Vault app: Regular Web Application ✅
 - Google social connection: enabled and toggled ON ✅
@@ -91,6 +101,7 @@
 | OpenAI content gen | Built | S&S methodology prompt, structured JSON output |
 | Mid-session revocation | Built | Execute node detects revoked tokens, stops immediately |
 | Netlify config | Built | `netlify.toml` ready |
+| Production build | Passing | `npm run build` — zero errors, 14/14 pages |
 
 ## What Has NOT Been Tested Yet
 
@@ -101,42 +112,31 @@
 
 ---
 
-## What Still Needs to Be Done (Hackathon Priority)
+## What Still Needs to Be Done (Updated April 2)
 
-### CRITICAL PATH (Must Have for Demo)
-
-1. **Enable Google APIs in Google Cloud Console** (TK does this once):
+### PHASE 1 — Environment Setup (TK manual steps)
+1. **Create `.env.local`** with real Auth0, Supabase, OpenAI, Tenant ID credentials
+2. **Enable Google APIs in Google Cloud Console** (one-time):
    - My Business Business Information API
    - My Business Account Management API
    - Google My Business API (legacy)
 
-2. **Test the connect flow locally:**
-   - `npm run dev` → login → click "Connect Google" → approve OAuth → verify token works
+### PHASE 2 — Test & Fix Loop
+3. **Test Auth0 login** — `npm run dev` → login → verify session + dashboard
+4. **Test Connect Google** — OAuth redirect through Auth0 → Google consent → callback
+5. **Test full agent pipeline** — pre-check → content-gen → execute → audit with real tokens
+6. **Test mid-session revocation** — disconnect mid-run → verify agent stops cold
 
-3. **Test full agent pipeline with real token:**
-   - Submit agent task → pre-check gets token → content-gen uses OpenAI → execute calls GBP API
+### PHASE 3 — Deploy
+7. **Deploy to Netlify** — push to main, add env vars, update Auth0 callback URLs
 
-4. **Test mid-session revocation:**
-   - Connect → start agent task → disconnect mid-run → verify agent stops
+### PHASE 4 — Demo
+8. **Record 3-minute demo video**
 
-5. **Deploy to Netlify:**
-   - Push to main → connect repo to Netlify → add env vars → test deployed URL
-   - Update Auth0 callback URLs to include Netlify URL
-
-6. **WordPress tools** (stretch — significantly strengthens demo):
-   - Connect WordPress via Auth0
-   - Add schema markup to pages
-   - Submit sitemap
-   - Fix robots.txt
-
-7. **Record 3-minute demo video**
-
-### NICE TO HAVE (If Time)
-- LangGraph human-in-the-loop with real interrupt/resume
-- Email notification on revocation
-- WordPress integration (schema markup, robots.txt, sitemap)
-- LinkedIn integration
-- Platform dashboard view (S&S team perspective)
+### SKIPPING (Not worth the risk)
+- WordPress integration — doubles OAuth debugging surface for no extra hackathon points
+- LangGraph interrupt/resume — auto-approve is fine for demo
+- Email notifications, LinkedIn, platform dashboard view
 
 ---
 

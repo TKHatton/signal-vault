@@ -1,8 +1,8 @@
 # Signal Vault — Next Session Prompt
 
-**Created:** 2026-03-31 (end of Session 3)
-**Hackathon Deadline:** April 6, 2026 @ 11:45pm PDT (6 days remaining)
-**Target Completion:** April 2, 2026 (2 days from now)
+**Updated:** 2026-04-02 (end of Session 4)
+**Hackathon Deadline:** April 6, 2026 @ 11:45pm PDT (4 days remaining)
+**Status:** All code built, build passes clean, ready for testing + deployment
 
 ---
 
@@ -11,10 +11,10 @@
 ```
 I'm continuing work on Signal Vault — my Auth0 hackathon entry. Read SESSION_LOG.md for full context.
 
-SHORT VERSION: Signal Vault lets clients connect their Google/WordPress accounts via OAuth (Auth0 Token Vault). AI agents then use those tokens to do real work on the client's behalf — audit their Google Business Profile, add schema markup to their WordPress site, update business hours, etc. Every action is logged. Clients can revoke access mid-session and the agent stops immediately. This is for the "Authorized to Act: Auth0 for AI Agents" hackathon, deadline April 6.
+SHORT VERSION: Signal Vault lets clients connect their Google account via OAuth (Auth0 Token Vault). AI agents then use those tokens to do real work — audit their Google Business Profile, generate fixes using S&S methodology, update descriptions. Every action goes through a 7-step verification pipeline (pre-check → content-gen → human-review → permission-validate → execute → post-check → audit). Clients can revoke access mid-session and the agent stops immediately. This is for the "Authorized to Act: Auth0 for AI Agents" hackathon, deadline April 6.
 
-WHAT'S ALREADY BUILT (3 commits on main):
-- Full Next.js app with 7 pages (Vault, Agent, Activity Log, Reports, Settings)
+WHAT'S ALREADY BUILT (4 commits on main, build passes clean):
+- Full Next.js 14 app with 7 pages (Vault, Agent, Activity Log, Reports, Settings)
 - Auth0 login/logout/session working
 - Supabase tables created and working (vault_connections, vault_audit_log, vault_trust_reports)
 - All API routes wired to Supabase
@@ -26,67 +26,44 @@ WHAT'S ALREADY BUILT (3 commits on main):
 - Execute node calls real GBP API with Token Vault tokens
 - Mid-session revocation detection (agent stops if token revoked)
 - Netlify config ready
+- npm run build passes with zero errors (14/14 pages)
 
-WHAT NEEDS TO BE DONE NOW (in priority order):
+WHAT NEEDS TO BE DONE NOW:
 
-1. ENABLE GOOGLE APIS IN GOOGLE CLOUD CONSOLE (I need to do this manually):
-   - Go to console.cloud.google.com
-   - APIs & Services > Library
+1. CREATE .env.local (if not already done):
+   - Copy .env.example and fill in Auth0, Supabase, OpenAI, Tenant ID credentials
+
+2. ENABLE GOOGLE APIS IN GOOGLE CLOUD CONSOLE (if not already done):
    - Enable: "My Business Business Information API"
    - Enable: "My Business Account Management API"
    - Enable: "Google My Business API"
-   Note: This is a ONE-TIME developer setup. Clients never do this.
 
-2. TEST THE CONNECT FLOW LOCALLY:
-   - npm run dev
-   - Login via Auth0
-   - Click "Connect Google" on Vault page
-   - Should redirect: browser → Auth0 → Google "Allow" screen → back to /vault
-   - Debug any errors that come up
+3. TEST LOCALLY (run npm run dev, work through each flow):
+   - Auth0 login → verify dashboard loads
+   - "Connect Google" → OAuth redirect → Google consent → callback to /vault
+   - Agent pipeline → submit task → verify all 7 steps execute with real tokens
+   - Mid-session revocation → disconnect mid-run → verify agent stops cold
 
-3. TEST FULL AGENT PIPELINE WITH REAL TOKEN:
-   - Go to Agent Workspace
-   - Type "Audit my Google Business Profile and suggest improvements"
-   - Should: pre-check (gets token) → content-gen (OpenAI) → human-review → permission-validate → execute (real GBP API) → post-check → audit (saved to Supabase)
-   - Check Activity Log for entries
-   - Check Trust Reports for the report
-
-4. TEST MID-SESSION REVOCATION:
-   - With Google connected, start an agent task
-   - While it's running, click "Disconnect" on the Google card
-   - Pipeline should fail at next token check with "ACCESS REVOKED" message
-   - Check audit log shows the revocation
-
-5. DEPLOY TO NETLIFY:
-   - Connect GitHub repo to Netlify
-   - Add ALL env vars from .env.local to Netlify environment settings
-   - Update Auth0 callback URLs to include the Netlify domain
+4. DEPLOY TO NETLIFY:
+   - Push to main, connect repo, add env vars
+   - Update Auth0 callback/logout/origins URLs for Netlify domain
    - Test deployed URL end-to-end
 
-6. WORDPRESS TOOLS (stretch goal — makes demo much stronger):
-   - Add WordPress social connection in Auth0 Dashboard
-   - Build WordPress API tools (add schema, update robots.txt, submit sitemap)
-   - Wire into execute node alongside GBP tools
-   - Demo: client connects WordPress, agent adds LocalBusiness schema to homepage
-
-7. RECORD 3-MINUTE DEMO VIDEO:
-   Script:
-   0:00-0:20 — Problem: "Clients share passwords in emails. That's insecure."
-   0:20-0:50 — Client logs in, clicks "Connect Google", one-click OAuth
-   0:50-1:20 — Agent audits GBP, finds issues, generates fixes using S&S methodology
-   1:20-1:50 — Client reviews proposed changes, approves them
-   1:50-2:20 — Agent executes real GBP updates via Token Vault, all logged
-   2:20-2:40 — Client revokes access mid-session, agent stops COLD
-   2:40-3:00 — Trust report shows full audit trail. "This is how agents should work."
+5. RECORD 3-MINUTE DEMO VIDEO:
+   0:00-0:20 — Problem: clients share passwords insecurely
+   0:20-0:50 — Client logs in, one-click "Connect Google" OAuth
+   0:50-1:20 — Agent audits GBP, finds issues, proposes fixes
+   1:20-1:50 — Client approves, agent executes real updates via Token Vault
+   1:50-2:20 — All actions logged, full transparency
+   2:20-2:40 — Client revokes mid-session, agent stops COLD
+   2:40-3:00 — Trust report shows full audit trail
 
 KEY CONTEXT:
 - Auth0 does NOT need M2M application. Token Vault works through user sessions.
 - Client experience is ONE CLICK: "Connect Google" → Google popup → "Allow" → done.
-- Clients do NOT set up Google Cloud, APIs, or anything technical.
-- The Google Cloud setup (Step 1) is developer-only, done once.
+- WordPress integration was intentionally skipped — not worth the risk for hackathon.
 - Deploy target is Netlify (not Vercel). netlify.toml already exists.
-- Signal & Structure AI methodology covers: structured data, GBP optimization, NAP consistency, content optimization, technical infrastructure, AI presence building.
-- Post-hackathon, Signal Vault embeds into ss-client-portal (client side) and ss-platform-dashboard (team side).
+- Post-hackathon, Signal Vault embeds into ss-client-portal + ss-platform-dashboard.
 ```
 
 ---
