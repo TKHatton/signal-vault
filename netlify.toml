@@ -2,9 +2,5 @@
   command = "npm run build"
   publish = ".next"
 
-# Use Node.js bundler for middleware (Auth0 SDK needs Node.js crypto APIs)
-[functions]
-  node_bundler = "esbuild"
-
 [[plugins]]
   package = "@netlify/plugin-nextjs"
