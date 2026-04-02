@@ -2,7 +2,7 @@
 
 **Updated:** 2026-04-02 (end of Session 5)
 **Hackathon Deadline:** April 6, 2026 @ 11:45pm PDT (4 days remaining)
-**Status:** App working end-to-end, deployed to Netlify, demo script written
+**Status:** App fully working on localhost, deployment blocked, demo script ready
 
 ---
 
@@ -11,89 +11,60 @@
 ```
 I'm continuing work on Signal Vault — my Auth0 hackathon entry. Read SESSION_LOG.md for full context.
 
-SHORT VERSION: Signal Vault is WORKING. Clients connect Google via OAuth (Auth0 Token Vault), AI agents use those tokens through a 7-step verification pipeline, clients can revoke mid-session, everything is audited. Deployed to Netlify.
+SHORT VERSION: Signal Vault is WORKING ON LOCALHOST. Everything functions end-to-end: OAuth connect via Token Vault, 7-step verification pipeline with real Google tokens, mid-session revocation, audit trails. Deployment to Netlify and Vercel both have issues that need debugging.
 
-WHAT'S DONE (6 commits on main, deployed):
-- Full Next.js 14 app with 7 pages — all working
-- Auth0 login/logout/session — working
-- OAuth connect flow via Token Vault — working (Auth0 /auth/connect endpoint)
-- Real Google access token from Token Vault — working
-- 7-step pipeline with real tokens — working (all steps execute)
-- OpenAI content generation with S&S methodology — working
-- Mid-session revocation detection — working
-- Audit trail + trust reports saved to Supabase — working
-- Deployed to https://signal-vault.netlify.app
-- Demo script written (DEMO_SCRIPT.md)
+WHAT'S WORKING (localhost):
+- Auth0 login/logout/session
+- OAuth connect flow via Token Vault (/auth/connect endpoint)
+- Real Google access token from Token Vault
+- 7-step pipeline: pre-check → content-gen → human-review → permission-validate → execute → post-check → audit
+- OpenAI content generation with S&S methodology
+- Mid-session revocation detection (agent stops cold)
+- Audit trail + trust reports saved to Supabase
+- All 7 UI pages styled and functional
 
-WHAT'S LEFT:
-1. UPDATE AUTH0 DASHBOARD — Add Netlify URLs:
-   - Callback: https://signal-vault.netlify.app/auth/callback
-   - Logout: https://signal-vault.netlify.app/
-   - Web Origins: https://signal-vault.netlify.app
+WHAT'S NOT WORKING:
+- Netlify deployment: builds succeed but runtime 500 (clientModules TypeError)
+- Vercel deployment: build fails (page_client-reference-manifest.js ENOENT in (dashboard) route group)
+- GBP API: returns 429 quota error (restricted API, needs access request — not an app issue)
 
-2. TEST NETLIFY DEPLOYMENT — verify login + pipeline on production URL
+WHAT NEEDS TO BE DONE:
 
-3. RECORD 3-MINUTE DEMO VIDEO — script in DEMO_SCRIPT.md
+1. FIX DEPLOYMENT (pick one):
+   Option A — Netlify: debug clientModules runtime error. Env vars are set. Build succeeds. The SSR function crashes.
+   Option B — Vercel: debug route group manifest error. Might be Next.js 14.2.35 specific. Try updating Next.js version.
+   Option C — Skip deployment, demo from localhost (valid for hackathon)
 
-4. SUBMIT TO DEVPOST — public repo, demo video, README
+2. RECORD 3-MINUTE DEMO VIDEO — script in DEMO_SCRIPT.md, record from localhost
 
-KNOWN LIMITATIONS:
-- GBP API returns 429 (zero quota — restricted API, needs access request). Token works, auth works. Not an app issue.
-- Google OAuth app in "testing" mode — test users must be added. Production needs Google verification.
+3. SUBMIT TO DEVPOST — public repo, demo video, README with architecture
 
-AUTH0 DASHBOARD CONFIGURATION (for reference):
+4. UPDATE AUTH0 DASHBOARD — Add production URLs once deployment works
+
+AUTH0 DASHBOARD CONFIGURATION (working config):
 - Google connection Purpose: "Connected Accounts for Token Vault" + "Authentication"
 - Offline Access: enabled on Google connection
 - Token Vault grant type: enabled on app
 - Multi-Resource Refresh Token: My Account API toggled on
 - Refresh Token Rotation: DISABLED (conflicts with Token Vault)
 - My Account API: activated
-- Google Cloud Console: custom OAuth Client ID/Secret (not Auth0 dev keys)
+- Google Cloud Console: custom OAuth Client ID/Secret
 - Google Cloud Console: redirect URI includes Auth0 callback
+- Google Cloud Console: test user added (Ltkenney13@gmail.com)
+- Google Cloud Console: GBP APIs enabled (Business Information + Account Management)
 
-KEY CONTEXT:
-- Deploy target is Netlify. Site is live at https://signal-vault.netlify.app
-- Demo should run on localhost (more reliable for video recording)
-- The 429 GBP quota error is GOOD for the demo — proves real API integration
-- Post-hackathon: Signal Vault embeds into ss-client-portal + ss-platform-dashboard
+KEY LESSONS FROM SESSION 5 (save debugging time):
+- auth0.connectAccount() has MRRT bug — use /auth/connect SDK endpoint instead
+- Token must be fetched in API route (request context) and passed through pipeline state
+- Auth0 expiresAt is in seconds, Date.now() is milliseconds — must convert
+- Refresh Token Rotation must be OFF for Token Vault to work
+- Google social connection needs custom OAuth credentials (not Auth0 dev keys)
+- GBP API has zero default quota — requires Google access request
+- @netlify/plugin-nextjs was removed from package.json (caused Vercel issues)
+- output: "standalone" was removed from next.config.mjs (caused Vercel issues)
+
+REPO: https://github.com/TKHatton/signal-vault.git (12 commits on main)
 ```
-
----
-
-## Architecture Quick Reference
-
-```
-Client clicks "Connect Google"
-       |
-       v
-App redirects to /auth/connect?connection=google-oauth2
-       |
-       v
-Auth0 SDK handles MRRT token exchange + My Account API
-       |
-       v
-Google shows "Allow Signal & Structure AI to access your Business Profile?"
-       |
-       v
-Client clicks "Allow" -> Token stored in Auth0 Token Vault
-       |
-       v
-/api/chat route calls auth0.getAccessTokenForConnection("google-oauth2")
-       |
-       v
-Token Vault returns fresh Google access token (converted to ms)
-       |
-       v
-Token passed through LangGraph pipeline state (vaultToken field)
-       |
-       v
-Execute node uses token to call Google Business Profile API
-       |
-       v
-Every step logged to Supabase vault_audit_log + trust report generated
-```
-
-**If client revokes:** `getAccessTokenForConnection()` returns null -> pipeline stops -> "EXECUTION BLOCKED" -> revocation logged
 
 ---
 
@@ -116,17 +87,24 @@ Every step logged to Supabase vault_audit_log + trust report generated
 
 ---
 
-## Env Vars (already on Netlify)
+## Deployment Debug Notes
 
-```
-AUTH0_SECRET
-AUTH0_CLIENT_ID
-AUTH0_CLIENT_SECRET
-AUTH0_DOMAIN
-APP_BASE_URL=https://signal-vault.netlify.app
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-OPENAI_API_KEY
-TENANT_ID
-```
+### Netlify Issue
+- Error: `TypeError: Cannot read properties of undefined (reading 'clientModules')` in `app-page.runtime.prod.js`
+- Happens at runtime (SSR function), not build time
+- Build succeeds, deploy is "green", but every page request 500s
+- Env vars were imported via CLI and confirmed present
+- Tried: standalone output, node_bundler esbuild, building locally vs server-side — all same error
+
+### Vercel Issue
+- Error: `ENOENT: no such file or directory, lstat '/vercel/path0/.next/server/app/(dashboard)/page_client-reference-manifest.js'`
+- Happens during build/deploy step
+- Related to `(dashboard)` route group
+- Tried: removing @netlify/plugin-nextjs, removing standalone output — still fails
+- Possible fix: update Next.js to newer version, or restructure route groups
+
+### Potential Fixes to Try Next Session
+1. Update Next.js from 14.2.35 to latest 14.x or 15.x
+2. Remove `(dashboard)` route group (move pages to top-level routes)
+3. Try `output: "export"` for static export (but loses SSR/API routes)
+4. Debug Vercel build more carefully — check if it's a Windows line ending issue

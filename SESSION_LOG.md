@@ -1,6 +1,6 @@
 # Signal Vault - Session Log
 
-**Last Updated:** 2026-04-02 (Session 5)
+**Last Updated:** 2026-04-02 (Session 5, continued)
 
 ## Project Overview
 
@@ -124,6 +124,12 @@
 - Covers: problem → connect → pipeline → audit trail → revocation → pitch
 - Commits: `d322ddb` (Token Vault end-to-end wiring)
 
+**Deployment — In Progress:**
+- Netlify: site created (signal-vault.netlify.app), env vars imported, but runtime 500 error (`clientModules` bug — Next.js 14 + Netlify SSR incompatibility). Build succeeds but pages crash at runtime.
+- Vercel: attempted as alternative. Build fails with `page_client-reference-manifest.js` ENOENT error related to `(dashboard)` route group. Removed `@netlify/plugin-nextjs` from package.json, removed `output: "standalone"` from next.config — still failing.
+- **Decision: Park deployment, demo from localhost.** App works perfectly locally. Demo video and GitHub repo are what judges evaluate. Deployment can be debugged post-submission.
+- Commits: `49392b4` (demo script + session log), `1f98010` → `c841a43` (Netlify fixes), `7254c09` → `8277666` (Vercel attempts), `2bf0afd` (remove Netlify plugin)
+
 ### Auth0 Dashboard Status (Verified March 31)
 - Signal Vault app: Regular Web Application ✅
 - Google social connection: enabled and toggled ON ✅
@@ -151,7 +157,8 @@
 | OpenAI content gen | Working | S&S methodology prompt, structured JSON output ✅ |
 | 7-step pipeline | Working | All steps execute with real Token Vault tokens ✅ |
 | Mid-session revocation | Working | Disconnect stops agent cold, logged in audit trail ✅ |
-| Netlify deploy | Live | https://signal-vault.netlify.app ✅ |
+| Netlify deploy | Blocked | Build succeeds, runtime 500 (clientModules bug) |
+| Vercel deploy | Blocked | Build fails (route group manifest issue) |
 | Production build | Passing | `npm run build` — zero errors, 14/14 pages |
 
 ## What Has Been Tested and Verified (Session 5)
@@ -172,10 +179,10 @@
 ## What Still Needs to Be Done (Updated April 2 — Session 5)
 
 ### REMAINING
-1. **Update Auth0 Dashboard** — Add Netlify callback/logout/origins URLs
-2. **Test deployed Netlify URL** — verify login + pipeline on production
-3. **Record 3-minute demo video** — script in `DEMO_SCRIPT.md`
-4. **Submit to Devpost** — public repo, demo video, README with architecture
+1. **Fix deployment** — Netlify (clientModules runtime error) or Vercel (route group manifest error). Neither builds correctly yet. Low priority — demo from localhost.
+2. **Record 3-minute demo video** — script in `DEMO_SCRIPT.md`, record from localhost
+3. **Submit to Devpost** — public repo, demo video, README with architecture
+4. **Update Auth0 Dashboard** — Add production callback/logout/origins URLs (once deployment works)
 
 ### COMPLETED
 - ~~Environment setup~~ ✅
@@ -184,8 +191,8 @@
 - ~~OAuth connect flow~~ ✅
 - ~~Full pipeline with real tokens~~ ✅
 - ~~Mid-session revocation~~ ✅
-- ~~Deploy to Netlify~~ ✅
 - ~~Demo script written~~ ✅
+- ~~Deployment attempted~~ (Netlify + Vercel — both have build/runtime issues)
 
 ---
 
