@@ -96,7 +96,8 @@ export const vaultGraph = workflow.compile({
 export async function runVerificationPipeline(
   userRequest: string,
   connection: string,
-  threadId: string
+  threadId: string,
+  vaultToken?: { accessToken: string; expiresAt: number } | null
 ) {
   const config = {
     configurable: {
@@ -117,6 +118,7 @@ export async function runVerificationPipeline(
     postCheck: null,
     audit: null,
     error: null,
+    vaultToken: vaultToken || null,
   };
 
   // Stream through the graph to get step-by-step updates

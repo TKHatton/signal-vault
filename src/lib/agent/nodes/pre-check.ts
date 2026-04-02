@@ -1,6 +1,5 @@
 import { VaultAgentStateType } from "../state";
 import { AIMessage } from "@langchain/core/messages";
-import { getTokenForConnection } from "@/lib/auth0-ai";
 
 /**
  * PRE-CHECK NODE
@@ -40,8 +39,8 @@ export async function preCheckNode(
     };
   }
 
-  // Try to get a real token from Auth0 Token Vault
-  const tokenResult = await getTokenForConnection(state.connection);
+  // Use the token passed from the request context (chat route)
+  const tokenResult = state.vaultToken;
 
   if (!tokenResult) {
     // Token Vault returned null — connection may not be set up yet

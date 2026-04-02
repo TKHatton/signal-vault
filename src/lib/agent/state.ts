@@ -136,6 +136,12 @@ export const VaultAgentState = Annotation.Root({
     reducer: (_, next) => next,
     default: () => null,
   }),
+
+  // Token from Auth0 Token Vault (passed from request context)
+  vaultToken: Annotation<{ accessToken: string; expiresAt: number } | null>({
+    reducer: (_, next) => next,
+    default: () => null,
+  }),
 });
 
 export type VaultAgentStateType = typeof VaultAgentState.State;

@@ -1,6 +1,5 @@
 import { VaultAgentStateType } from "../state";
 import { AIMessage } from "@langchain/core/messages";
-import { getTokenForConnection } from "@/lib/auth0-ai";
 import {
   listAccounts,
   listLocations,
@@ -29,8 +28,8 @@ export async function executeNode(
 
   console.log("[Execute] Applying changes via Token Vault token...");
 
-  // Get fresh token from Token Vault
-  const tokenResult = await getTokenForConnection(state.connection);
+  // Use the token passed from the request context (chat route)
+  const tokenResult = state.vaultToken;
 
   if (!tokenResult) {
     // Token was revoked or unavailable — this is the mid-session revocation demo

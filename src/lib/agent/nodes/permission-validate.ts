@@ -1,6 +1,5 @@
 import { VaultAgentStateType } from "../state";
 import { AIMessage } from "@langchain/core/messages";
-import { getTokenForConnection } from "@/lib/auth0-ai";
 
 /**
  * PERMISSION VALIDATION NODE
@@ -16,8 +15,8 @@ export async function permissionValidateNode(
 
   console.log("[Permission Validate] Re-verifying OAuth token...");
 
-  // Re-fetch token to ensure it's still valid
-  const tokenResult = await getTokenForConnection(state.connection);
+  // Use the token passed from the request context
+  const tokenResult = state.vaultToken;
 
   if (!tokenResult) {
     // Token Vault unavailable — for hackathon demo, allow continuation

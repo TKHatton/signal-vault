@@ -50,9 +50,12 @@ export async function getTokenForConnection(
 
     console.log(`[Token Vault] Token retrieved for ${connection}, expires at ${result.expiresAt}`);
 
+    // Auth0 returns expiresAt in seconds; convert to milliseconds for Date.now() comparisons
+    const expiresAtMs = result.expiresAt < 1e12 ? result.expiresAt * 1000 : result.expiresAt;
+
     return {
       accessToken: result.token,
-      expiresAt: result.expiresAt,
+      expiresAt: expiresAtMs,
     };
   } catch (error) {
     console.error(`[Token Vault] Failed to get token for ${connection}:`, error);

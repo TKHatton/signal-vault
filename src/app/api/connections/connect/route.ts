@@ -1,10 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth0 } from "@/lib/auth0";
-import {
-  GOOGLE_SCOPES,
-  WORDPRESS_SCOPES,
-  LINKEDIN_SCOPES,
-} from "@/lib/auth0-ai";
 import { getSessionUser } from "@/lib/session";
 import { upsertConnection, createAuditEntry } from "@/lib/supabase/queries";
 import { AVAILABLE_SERVICES } from "@/lib/connections";
@@ -27,33 +21,30 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const scopeMap: Record<string, string[]> = {
-    "google-oauth2": GOOGLE_SCOPES,
-    wordpress: WORDPRESS_SCOPES,
-    linkedin: LINKEDIN_SCOPES,
-  };
-
-  const scopes = scopeMap[connectionType];
-  if (!scopes) {
+  // Validate connection type
+  const validConnections = ["google-oauth2", "wordpress", "linkedin"];
+  if (!validConnections.includes(connectionType)) {
     return NextResponse.json(
       { error: `Unknown connection: ${connectionType}` },
       { status: 400 }
     );
   }
 
-  try {
-    return await auth0.connectAccount({
-      connection: connectionType,
-      scopes,
-      returnTo: `/vault?connected=${connectionType}`,
-    });
-  } catch (error) {
-    console.error("[Connect] Error initiating connection:", error);
-    return NextResponse.json(
-      { error: "Failed to initiate connection flow" },
-      { status: 500 }
-    );
-  }
+  // Redirect to the SDK's built-in /auth/connect endpoint.
+  // This handles the full Connected Accounts flow correctly, including
+  // MRRT token exchange for Token Vault. Scopes are configured on the
+  // connection in the Auth0 Dashboard, not passed in the URL.
+  const connectUrl = new URL("/auth/connect", request.nextUrl.origin);
+  connectUrl.searchParams.set("connection", connectionType);
+  connectUrl.searchParams.set("returnTo", `/vault?connected=${connectionType}`);
+
+  // Don't pass scopes to the URL — let Auth0 use the scopes configured
+  // on the connection in the Dashboard. Custom scopes can cause 400 errors
+  // if they're not pre-configured on the connection.
+
+  console.log("[Connect] Redirecting to SDK endpoint:", connectUrl.toString());
+
+  return NextResponse.redirect(connectUrl);
 }
 
 /**

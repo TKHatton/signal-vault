@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runVerificationPipeline } from "@/lib/agent/graph";
 import { getSessionUser } from "@/lib/session";
+import { getTokenForConnection } from "@/lib/auth0-ai";
 
 /**
  * POST /api/chat
@@ -27,11 +28,22 @@ export async function POST(request: NextRequest) {
     // Generate thread ID if not provided
     const thread = threadId || `thread-${Date.now().toString(36)}`;
 
-    // Run the full verification pipeline
+    // Get the Token Vault token here (in request context where cookies are available)
+    const connectionName = connection || "google-oauth2";
+    let vaultToken: { accessToken: string; expiresAt: number } | null = null;
+    try {
+      vaultToken = await getTokenForConnection(connectionName);
+      console.log("[API /chat] Token Vault token obtained:", !!vaultToken);
+    } catch (err) {
+      console.error("[API /chat] Failed to get Token Vault token:", err);
+    }
+
+    // Run the full verification pipeline (pass token so nodes don't need cookie context)
     const result = await runVerificationPipeline(
       message,
-      connection || "google-oauth2",
-      thread
+      connectionName,
+      thread,
+      vaultToken
     );
 
     // Extract step results for the UI

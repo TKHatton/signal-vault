@@ -8,4 +8,10 @@ export const auth0 = new Auth0Client({
   // This is required for Token Vault — it lets users connect Google, WordPress, etc.
   // without replacing their primary login method.
   enableConnectAccountEndpoint: true,
+
+  // Request offline_access so the SDK can exchange the refresh token
+  // for a My Account API token (needed for Connected Accounts / Token Vault).
+  authorizationParameters: {
+    scope: "openid profile email offline_access",
+  },
 });
