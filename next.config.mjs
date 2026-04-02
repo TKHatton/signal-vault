@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Standalone output for Netlify compatibility
+  output: "standalone",
   async headers() {
     return [
       {
