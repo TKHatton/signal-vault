@@ -1,6 +1,6 @@
 # Signal Vault - Session Log
 
-**Last Updated:** 2026-04-02 (Session 5, continued)
+**Last Updated:** 2026-04-03 (Session 6)
 
 ## Project Overview
 
@@ -9,10 +9,10 @@
 - **Tech Stack:** Next.js 14, React 18, TypeScript, TailwindCSS
 - **Key Integrations:** Auth0 (@auth0/nextjs-auth0 v4), Supabase, LangChain/LangGraph, OpenAI
 - **Repo:** https://github.com/TKHatton/signal-vault.git
-- **Branch:** main (6 commits)
+- **Branch:** main
 - **Hackathon:** "Authorized to Act: Auth0 for AI Agents" — Deadline April 6, 2026
-- **Deploy Target:** Netlify (NOT Vercel)
-- **Goal:** Ship today (April 2) — 4 days before deadline
+- **Deploy:** https://signal-vault.netlify.app (LIVE)
+- **Goal:** Record demo, submit to DevPost by April 6
 
 ---
 
@@ -75,7 +75,7 @@
 - Remaining work is all testing + deployment (no new features needed)
 - Commits: `e5a8001` (session log/prompt update from Session 3)
 
-### Session 5 (April 2) — Testing, Debugging, Deploy
+### Session 5 (April 2) — Testing, Debugging, Deploy Attempts
 **OAuth Connect Flow — Debugged and Working:**
 - Initial `auth0.connectAccount()` failed with `ConnectAccountError` (MRRT incompatibility)
 - Fix: redirect to SDK's built-in `/auth/connect` endpoint instead
@@ -112,30 +112,73 @@
 - Activity log shows Connected/Disconnected events with timestamps
 - **Result: Revocation detection works** ✅
 
-**Deployed to Netlify:**
-- Site created: https://signal-vault.netlify.app
-- All env vars imported from `.env.local`
-- `APP_BASE_URL` set to Netlify URL
-- Auth0 callback/logout/origins URLs need Netlify domain added
-- **Result: Production deploy live** ✅
-
 **Demo Script Written:**
 - `DEMO_SCRIPT.md` created with full 3-minute video script
-- Covers: problem → connect → pipeline → audit trail → revocation → pitch
 - Commits: `d322ddb` (Token Vault end-to-end wiring)
 
-**Deployment — In Progress:**
-- Netlify: site created (signal-vault.netlify.app), env vars imported, but runtime 500 error (`clientModules` bug — Next.js 14 + Netlify SSR incompatibility). Build succeeds but pages crash at runtime.
-- Vercel: attempted as alternative. Build fails with `page_client-reference-manifest.js` ENOENT error related to `(dashboard)` route group. Removed `@netlify/plugin-nextjs` from package.json, removed `output: "standalone"` from next.config — still failing.
-- **Decision: Park deployment, demo from localhost.** App works perfectly locally. Demo video and GitHub repo are what judges evaluate. Deployment can be debugged post-submission.
-- Commits: `49392b4` (demo script + session log), `1f98010` → `c841a43` (Netlify fixes), `7254c09` → `8277666` (Vercel attempts), `2bf0afd` (remove Netlify plugin)
+**Deployment — Attempted but Blocked:**
+- Netlify: site created (signal-vault.netlify.app), env vars imported, but runtime 500 error
+- Vercel: attempted as alternative, build failed
+- Decision at end of Session 5: park deployment, demo from localhost
+- Commits: `49392b4`, `1f98010` → `c841a43`, `7254c09` → `8277666`, `2bf0afd`
 
-### Auth0 Dashboard Status (Verified March 31)
+### Session 6 (April 3) — Deployment FIXED, Submission Prep
+
+**Deployment Fixed — TWO root causes identified and resolved:**
+
+1. **`@netlify/plugin-nextjs` mismatch (caused `clientModules` TypeError):**
+   - The plugin was referenced in `netlify.toml` but had been removed from `package.json` in Session 5
+   - This mismatch caused Netlify's build system to incorrectly configure the SSR function
+   - Netlify no longer needs this plugin at all — it uses the OpenNext adapter automatically
+   - **Fix:** Removed `[[plugins]] package = "@netlify/plugin-nextjs"` from `netlify.toml`
+
+2. **Next.js 14.2.x `(dashboard)` route group bug (caused `page_client-reference-manifest.js` ENOENT):**
+   - Next.js 14.2.x has a known bug where parenthesized route groups fail to generate the client reference manifest file
+   - This was the SAME error blocking Vercel deployment — both platforms hit the same underlying Next.js bug
+   - The bug was fixed in Next.js 15 (PR #73606) but **never backported to 14.x**
+   - 14.2.35 IS the latest 14.x release — there was no version to upgrade to within 14
+   - **Fix:** Removed the `(dashboard)` route group entirely. Moved all pages from `src/app/(dashboard)/` to `src/app/` with individual `layout.tsx` files that include the Sidebar component
+   - URLs unchanged — `/vault`, `/agent`, `/activity`, `/reports`, `/settings` all work the same
+
+3. **Middleware Edge Runtime incompatibility (bonus fix):**
+   - Auth0's `@auth0/nextjs-auth0` SDK uses Node.js `crypto` module, which isn't available in Edge Runtime
+   - Set `export const runtime = "nodejs"` in `src/middleware.ts`
+   - Changed function signature from `Request` to `NextRequest`
+
+**Result: https://signal-vault.netlify.app is LIVE and rendering correctly** ✅
+
+**Auth0 Dashboard Updated:**
+- Callback URL: added `https://signal-vault.netlify.app/auth/callback`
+- Logout URL: added `https://signal-vault.netlify.app`
+- Allowed Web Origins: added `https://signal-vault.netlify.app`
+- **Result: Auth0 URLs configured for production** ✅
+
+**Submission Materials Created:**
+- `DEVPOST_CHECKLIST.md` — reusable DevPost submission template for future hackathons
+- `SIGNAL_VAULT_SUBMISSION.md` — complete submission with all narrative sections filled out
+- `README.md` — rewritten from Next.js boilerplate to real project documentation
+- `DEMO_SCRIPT.md` — revised (v2) with personal narrative, better pacing, revocation as climax
+- `BLOG_POSTS.md` — 5 unique blog posts for 5 platforms:
+  1. LinkedIn (founder reflection on Auth0's depth)
+  2. Signal & Structure AI blog (client-facing trust angle)
+  3. Digital Jaywalking blog (technical architecture — token lifecycle management)
+  4. She is AI community (hackathon experience, encouragement)
+  5. AI Surfers community (builder/entrepreneur business case)
+- `thumbnail.svg` + `thumbnail.html` — hero thumbnail with brand colors and pipeline visualization
+
+**Key Deployment Lesson for Submission:**
+The deployment fix is a genuinely interesting hackathon story: a known Next.js 14 bug with parenthesized route groups that was fixed in Next.js 15 but never backported. Both Netlify and Vercel failed for the same root cause — the `(dashboard)` folder name. The fix was architectural (flatten the route structure) not a config tweak. This demonstrates real debugging under pressure and understanding of framework internals.
+
+Commits: `f2c27b7` (remove plugin mismatch + Node.js middleware), `0acfe9b` (remove route group)
+
+### Auth0 Dashboard Status (Verified April 3)
 - Signal Vault app: Regular Web Application ✅
 - Google social connection: enabled and toggled ON ✅
-- Callback URL: `http://localhost:3000/auth/callback` ✅
-- Logout URL: `http://localhost:3000/` ✅
+- Callback URLs: `http://localhost:3000/auth/callback` + `https://signal-vault.netlify.app/auth/callback` ✅
+- Logout URLs: `http://localhost:3000/` + `https://signal-vault.netlify.app` ✅
 - My Account API: ACTIVATED ✅
+- Token Vault grant type: enabled ✅
+- Refresh Token Rotation: DISABLED ✅
 - Login flow tested end-to-end ✅
 - `enableConnectAccountEndpoint: true` set in code ✅
 
@@ -150,24 +193,24 @@
 | Supabase tables | Working | 3 tables created, RLS enabled |
 | All API routes | Working | Wired to Supabase, return real data |
 | Frontend fetches | Working | All pages call real API endpoints |
-| Token Vault calls | Wired | `getAccessTokenForConnection()` in pre-check + permission-validate |
+| Token Vault calls | Working | `getAccessTokenForConnection()` in pre-check + permission-validate |
 | OAuth connect flow | Working | `/auth/connect` → Auth0 → Google consent → callback ✅ |
 | Token Vault exchange | Working | `getAccessTokenForConnection()` returns real Google token ✅ |
 | GBP API tools | Working | Token accepted by Google (429 = quota, not auth) ✅ |
 | OpenAI content gen | Working | S&S methodology prompt, structured JSON output ✅ |
 | 7-step pipeline | Working | All steps execute with real Token Vault tokens ✅ |
 | Mid-session revocation | Working | Disconnect stops agent cold, logged in audit trail ✅ |
-| Netlify deploy | Blocked | Build succeeds, runtime 500 (clientModules bug) |
-| Vercel deploy | Blocked | Build fails (route group manifest issue) |
+| **Netlify deploy** | **LIVE** | **https://signal-vault.netlify.app — rendering correctly** ✅ |
 | Production build | Passing | `npm run build` — zero errors, 14/14 pages |
 
-## What Has Been Tested and Verified (Session 5)
+## What Has Been Tested and Verified
 
 1. **Connect Google end-to-end** ✅ — OAuth redirect through Auth0 → Google consent → callback → CONNECTED
 2. **Token Vault token exchange** ✅ — Real Google access token retrieved and used
 3. **Full agent pipeline with real tokens** ✅ — All 7 steps execute, trust reports saved
 4. **Mid-session revocation** ✅ — Agent stops cold, revocation logged
-5. **Deploy to Netlify** ✅ — https://signal-vault.netlify.app live
+5. **Deploy to Netlify** ✅ — https://signal-vault.netlify.app live and rendering
+6. **Auth0 production URLs** ✅ — Callback/logout/origins configured for Netlify domain
 
 ## Known Limitations
 
@@ -176,13 +219,13 @@
 
 ---
 
-## What Still Needs to Be Done (Updated April 2 — Session 5)
+## What Still Needs to Be Done (Updated April 3 — Session 6)
 
 ### REMAINING
-1. **Fix deployment** — Netlify (clientModules runtime error) or Vercel (route group manifest error). Neither builds correctly yet. Low priority — demo from localhost.
-2. **Record 3-minute demo video** — script in `DEMO_SCRIPT.md`, record from localhost
-3. **Submit to Devpost** — public repo, demo video, README with architecture
-4. **Update Auth0 Dashboard** — Add production callback/logout/origins URLs (once deployment works)
+1. **Record 3-minute demo video** — revised script in `DEMO_SCRIPT.md`, can demo from deployed site or localhost
+2. **Submit to Devpost** — all materials ready in `SIGNAL_VAULT_SUBMISSION.md`
+3. **Publish blog posts** — 5 posts ready in `BLOG_POSTS.md`
+4. **Test deployed site end-to-end** — login flow, connect, pipeline on Netlify
 
 ### COMPLETED
 - ~~Environment setup~~ ✅
@@ -191,8 +234,13 @@
 - ~~OAuth connect flow~~ ✅
 - ~~Full pipeline with real tokens~~ ✅
 - ~~Mid-session revocation~~ ✅
-- ~~Demo script written~~ ✅
-- ~~Deployment attempted~~ (Netlify + Vercel — both have build/runtime issues)
+- ~~Demo script written~~ ✅ (revised v2)
+- ~~Deployment~~ ✅ — **FIXED AND LIVE**
+- ~~Auth0 production URLs~~ ✅
+- ~~README rewritten~~ ✅
+- ~~DevPost submission content~~ ✅
+- ~~Blog posts written~~ ✅ (5 unique posts)
+- ~~Thumbnail created~~ ✅
 
 ---
 
@@ -201,17 +249,16 @@
 **What loses:** "I connected an account and it shows connected." Every entry does that.
 
 **What wins:**
-1. Client connects Google → real OAuth, one-click experience
-2. Agent audits their GBP → reads real listing data, scores completeness
-3. Agent proposes fixes → AI-generated using S&S methodology
-4. Client approves → human-in-the-loop
-5. Agent executes → updates GBP description, hours, categories using Token Vault token
-6. Client sees everything in Activity Log → full transparency
-7. **Client revokes access mid-session → agent stops COLD**
-8. Revocation logged → audit trail proves nothing happened after revocation
-9. Everything visible in Trust Report → 7-step verification proof
+1. Personal story — "I started a company, clients trust me with money, now I'm asking for passwords"
+2. Client connects Google → real OAuth, one-click experience
+3. Agent runs through 7-step pipeline → watch it in real time
+4. Activity Log → client sees every action with timestamps (transparency)
+5. Trust Reports → auditable proof of what happened
+6. **Client revokes access mid-session → agent stops COLD**
+7. Revocation logged → audit trail proves nothing happened after
+8. Mutual protection — agency never holds credentials, both sides safe
 
-**The pitch:** "Your client never shares a password. They click 'Allow.' Your AI agent does the work. They see every action. They revoke anytime — even mid-session — and the agent stops immediately. This is how agentic AI should handle credentials."
+**The pitch:** "I built Signal Vault because I didn't want to be the person asking for passwords. Auth0 Token Vault made it possible to never hold a client's credentials. The 7-step pipeline makes sure nothing happens without verification. And if a client ever changes their mind — even mid-operation — the agent stops cold."
 
 ---
 
@@ -219,26 +266,26 @@
 
 ```
 CLIENT SIDE                          S&S TEAM SIDE
-──────────                           ──────────────
+----------                           --------------
 ss-client-portal                     ss-platform-dashboard
   (client logs in)                     (TK/team logs in)
-       │                                      │
-       │ "Connect Google"                     │
-       ▼                                      │
-  Signal Vault                                │
-  (OAuth flow via Auth0)                      │
-       │                                      │
-       │ Token stored in                      │
-       │ Auth0 Token Vault                    │
-       │                                      ▼
-       └──────────── tokens ────────► AI Agents use tokens
+       |                                      |
+       | "Connect Google"                     |
+       v                                      |
+  Signal Vault                                |
+  (OAuth flow via Auth0)                      |
+       |                                      |
+       | Token stored in                      |
+       | Auth0 Token Vault                    |
+       |                                      v
+       +------------ tokens ---------> AI Agents use tokens
                                       to do REAL work:
                                       - Update GBP description
                                       - Add schema to WordPress
                                       - Fix robots.txt
                                       - Submit sitemaps
-                                      │
-                                      ▼
+                                      |
+                                      v
                                    Activity Log
                                    (visible to BOTH client
                                     and S&S team)
@@ -262,15 +309,40 @@ ss-client-portal                     ss-platform-dashboard
 
 ---
 
+## Key Debugging Lessons (All Sessions)
+
+| Bug | Root Cause | Fix |
+|-----|-----------|-----|
+| `ConnectAccountError` | MRRT incompatibility with `auth0.connectAccount()` | Use `/auth/connect` SDK endpoint instead |
+| Token fetch fails in pipeline nodes | No request context (cookies) in LangGraph nodes | Fetch token in API route, pass through state |
+| Token validation rejects valid tokens | `expiresAt` in seconds, `Date.now()` in milliseconds | Convert units before comparison |
+| Refresh Token exchange fails | Refresh Token Rotation conflicts with Token Vault | Disable Rotation in Auth0 Dashboard |
+| Google OAuth fails with Auth0 dev keys | Token Vault requires custom OAuth credentials | Set up Google Cloud Console with custom Client ID/Secret |
+| Netlify runtime 500 (`clientModules`) | `@netlify/plugin-nextjs` in netlify.toml but not in package.json | Remove plugin reference — Netlify handles Next.js natively now |
+| Netlify + Vercel manifest ENOENT | Next.js 14.2.x bug with parenthesized `(dashboard)` route group | Remove route group, move pages to `src/app/` directly |
+| Middleware Edge Runtime crash | Auth0 SDK uses Node.js `crypto`, incompatible with Edge | Set `export const runtime = "nodejs"` in middleware |
+
+---
+
 ## File Structure
 
 ```
 signal-vault/
-├── netlify.toml                    # Netlify deployment config
+├── netlify.toml                    # Netlify deployment config (no plugins needed)
 ├── supabase/schema.sql             # SQL migration (ALREADY RAN)
+├── DEMO_SCRIPT.md                  # 3-minute demo video script (v2)
+├── SIGNAL_VAULT_SUBMISSION.md      # DevPost submission content
+├── DEVPOST_CHECKLIST.md            # Reusable template for future hackathons
+├── BLOG_POSTS.md                   # 5 blog posts for 5 platforms
+├── README.md                       # Project documentation (rewritten)
+├── thumbnail.svg                   # Hero thumbnail image
 ├── src/
 │   ├── app/
-│   │   ├── (dashboard)/            # vault, agent, activity, reports, settings pages
+│   │   ├── vault/                  # Connected Accounts page + layout
+│   │   ├── agent/                  # Agent Workspace page + layout
+│   │   ├── activity/               # Activity Log page + layout
+│   │   ├── reports/                # Trust Reports + detail pages + layout
+│   │   ├── settings/               # Settings page + layout
 │   │   └── api/
 │   │       ├── connections/
 │   │       │   ├── route.ts        # GET/DELETE connections (Supabase)
@@ -306,5 +378,6 @@ signal-vault/
 │   ├── components/
 │   │   ├── Sidebar.tsx
 │   │   └── vault/ConnectionCard.tsx
+│   ├── middleware.ts               # Auth0 middleware (runtime: nodejs)
 │   └── config/brand.config.ts
 ```

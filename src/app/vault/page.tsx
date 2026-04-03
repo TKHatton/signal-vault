@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import ConnectionCard from "@/components/vault/ConnectionCard";
 import { AVAILABLE_SERVICES } from "@/lib/connections";
 import { ConnectionStatus, ConnectionType } from "@/lib/types";
-import { Shield, AlertTriangle, Loader2 } from "lucide-react";
+import { Shield, AlertTriangle, Loader2, Info } from "lucide-react";
 
 interface ConnectionData {
   connection: ConnectionType;
@@ -176,8 +176,25 @@ function VaultContent() {
         })}
       </div>
 
+      {/* Hackathon notice */}
+      <div className="mt-6 card-static p-4 flex items-start gap-3 border-l-4 border-l-copper">
+        <Info size={20} className="text-copper mt-0.5 flex-shrink-0" />
+        <div>
+          <div className="text-sm font-semibold text-navy">
+            Hackathon Demo Note
+          </div>
+          <div className="text-sm text-warm-gray">
+            Google OAuth is in testing mode for this hackathon submission. Only pre-authorized
+            test accounts can complete the OAuth flow. To see the full pipeline in action,
+            visit the <a href="/agent" className="text-copper underline">Agent Workspace</a> and
+            click &quot;Try Demo&quot; to watch the 7-step verification pipeline with realistic
+            data — including mid-session revocation detection.
+          </div>
+        </div>
+      </div>
+
       {/* Security note */}
-      <div className="mt-8 flex items-start gap-3 text-sm text-warm-gray">
+      <div className="mt-6 flex items-start gap-3 text-sm text-warm-gray">
         <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
         <p>
           All connections use OAuth 2.0 via Auth0 Token Vault. Tokens are
