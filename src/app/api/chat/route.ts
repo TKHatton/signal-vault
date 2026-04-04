@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runVerificationPipeline } from "@/lib/agent/graph";
+import { runVerificationPipeline, runProposalPhase, runExecutionPhase } from "@/lib/agent/graph";
 import { getSessionUser } from "@/lib/session";
 import { getTokenForConnection } from "@/lib/auth0-ai";
 
@@ -7,13 +7,16 @@ import { getTokenForConnection } from "@/lib/auth0-ai";
  * POST /api/chat
  *
  * Invokes the multi-pass verification pipeline.
- * Accepts a user message and connection, runs all 7 steps,
- * and returns the final state with all verification results.
+ *
+ * Supports two modes:
+ * - phase: "propose" — runs pre-check + content-gen only, returns proposed changes
+ * - phase: "execute" — runs human-review through audit with approval decisions
+ * - no phase — runs all 7 steps (legacy behavior)
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, connection, threadId } = body;
+    const { message, connection, threadId, phase, approvalDecisions, approvalComment } = body;
 
     if (!message) {
       return NextResponse.json(
@@ -38,7 +41,70 @@ export async function POST(request: NextRequest) {
       console.error("[API /chat] Failed to get Token Vault token:", err);
     }
 
-    // Run the full verification pipeline (pass token so nodes don't need cookie context)
+    // Phase 1: Propose — run pre-check + content-gen only
+    if (phase === "propose") {
+      const result = await runProposalPhase(
+        message,
+        connectionName,
+        thread,
+        vaultToken
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const messages = result.messages.map((msg: any) => ({
+        role: msg._getType?.() === "human" ? "user" : "assistant",
+        content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+      }));
+
+      return NextResponse.json({
+        threadId: thread,
+        messages,
+        stepResults: {
+          preCheck: result.preCheck,
+          contentGen: result.contentGen,
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        proposedChanges: (result.contentGen as any)?.changes || [],
+        currentStep: result.currentStep,
+        error: result.error,
+        userId: user?.userId,
+      });
+    }
+
+    // Phase 2: Execute — run human-review through audit with real approval decisions
+    if (phase === "execute") {
+      const result = await runExecutionPhase(
+        message,
+        connectionName,
+        thread,
+        vaultToken,
+        approvalDecisions || [],
+        approvalComment || ""
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const messages = result.messages.map((msg: any) => ({
+        role: msg._getType?.() === "human" ? "user" : "assistant",
+        content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+      }));
+
+      return NextResponse.json({
+        threadId: thread,
+        messages,
+        stepResults: {
+          humanReview: result.humanReview,
+          permissionValidate: result.permissionValidate,
+          execute: result.execute,
+          postCheck: result.postCheck,
+          audit: result.audit,
+        },
+        currentStep: result.currentStep,
+        error: result.error,
+        userId: user?.userId,
+      });
+    }
+
+    // Legacy: Run the full pipeline (all 7 steps, auto-approve)
     const result = await runVerificationPipeline(
       message,
       connectionName,
@@ -46,7 +112,6 @@ export async function POST(request: NextRequest) {
       vaultToken
     );
 
-    // Extract step results for the UI
     const stepResults = {
       preCheck: result.preCheck,
       contentGen: result.contentGen,
@@ -57,7 +122,6 @@ export async function POST(request: NextRequest) {
       audit: result.audit,
     };
 
-    // Extract messages for the chat
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages = result.messages.map((msg: any) => ({
       role: msg._getType?.() === "human" ? "user" : "assistant",

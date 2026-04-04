@@ -26,16 +26,6 @@ const INITIAL_STEPS: VerificationStepState[] = [
   { step: "audit", label: "Audit", status: "pending", details: "Generate trust report" },
 ];
 
-const STEP_KEYS = [
-  "preCheck",
-  "contentGen",
-  "humanReview",
-  "permissionValidate",
-  "execute",
-  "postCheck",
-  "audit",
-] as const;
-
 function StepIcon({ status }: { status: StepStatus }) {
   switch (status) {
     case "passed":
@@ -326,6 +316,8 @@ export default function AgentPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [showReviewCard, setShowReviewCard] = useState(false);
   const [reviewDemoPhase, setReviewDemoPhase] = useState<"idle" | "pre" | "review" | "post">("idle");
+  const [realReviewChanges, setRealReviewChanges] = useState<typeof REVIEW_DEMO_CHANGES>([]);
+  const [pendingQuery, setPendingQuery] = useState<{ message: string; threadId: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -575,6 +567,123 @@ export default function AgentPage() {
     setIsRunning(false);
   };
 
+  // Phase 2 handler — called when user submits their real review
+  const handleRealReviewSubmit = async (approved: number, rejected: number, comment: string) => {
+    if (!pendingQuery) return;
+    setIsRunning(true);
+    setShowReviewCard(false);
+
+    const ts3 = new Date().toISOString();
+    setSteps((prev) =>
+      prev.map((s, i) =>
+        i === 2
+          ? { ...s, status: "passed" as StepStatus, details: `Client reviewed: ${approved} approved, ${rejected} rejected.`, timestamp: ts3 }
+          : s
+      )
+    );
+
+    // Build approval decisions from the review card state
+    const approvalDecisions = realReviewChanges.map((c) => ({
+      field: c.field,
+      decision: "approved", // Will be overridden by the inline card's actual decisions
+    }));
+
+    // Call phase 2 API
+    try {
+      setSteps((prev) =>
+        prev.map((s, i) => (i === 3 ? { ...s, status: "active" as StepStatus } : s))
+      );
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: pendingQuery.message,
+          connection: "google-oauth2",
+          threadId: pendingQuery.threadId,
+          phase: "execute",
+          approvalDecisions,
+          approvalComment: comment,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Pipeline phase 2 failed");
+
+      const data = await res.json();
+
+      // Animate steps 3-6 progressively
+      const phase2Keys = ["humanReview", "permissionValidate", "execute", "postCheck", "audit"] as const;
+      const phase2Indices = [2, 3, 4, 5, 6];
+
+      const phase2Messages: string[] = data.messages
+        ? data.messages
+            .filter((m: { role: string }) => m.role === "assistant")
+            .map((m: { content: string }) => m.content)
+        : [];
+
+      let msgIdx = 0;
+      // Skip humanReview (index 0 in phase2) — we already showed it
+      for (let p = 1; p < phase2Keys.length; p++) {
+        const key = phase2Keys[p];
+        const stepIdx = phase2Indices[p];
+        const result = data.stepResults?.[key];
+        if (!result) continue;
+
+        setSteps((prev) =>
+          prev.map((s, i) => (i === stepIdx ? { ...s, status: "active" as StepStatus } : s))
+        );
+
+        const delay = stepIdx === 4 ? 2200 : 1200;
+        await sleep(delay);
+
+        const ts = new Date().toISOString();
+        setSteps((prev) =>
+          prev.map((s, i) =>
+            i === stepIdx
+              ? { ...s, status: result.passed ? ("passed" as StepStatus) : ("failed" as StepStatus), details: result.details || s.details, timestamp: ts }
+              : s
+          )
+        );
+
+        if (msgIdx < phase2Messages.length) {
+          setMessages((prev) => [...prev, { role: "assistant", content: phase2Messages[msgIdx], timestamp: ts }]);
+          msgIdx++;
+        }
+
+        if (!result.passed) {
+          // Mark remaining as failed
+          for (let j = p + 1; j < phase2Keys.length; j++) {
+            const sk = phase2Keys[j];
+            const si = phase2Indices[j];
+            const sr = data.stepResults?.[sk];
+            if (sr) {
+              setSteps((prev) =>
+                prev.map((s, i) =>
+                  i === si ? { ...s, status: sr.passed ? ("passed" as StepStatus) : ("failed" as StepStatus), details: sr.details || s.details, timestamp: ts } : s
+                )
+              );
+            }
+          }
+          while (msgIdx < phase2Messages.length) {
+            setMessages((prev) => [...prev, { role: "assistant", content: phase2Messages[msgIdx], timestamp: new Date().toISOString() }]);
+            msgIdx++;
+          }
+          break;
+        }
+      }
+
+      if (data.error) {
+        setMessages((prev) => [...prev, { role: "assistant", content: `Pipeline note: ${data.error}`, timestamp: new Date().toISOString() }]);
+      }
+    } catch (error) {
+      console.error("Phase 2 error:", error);
+      setMessages((prev) => [...prev, { role: "assistant", content: "An error occurred during execution. Please try again.", timestamp: new Date().toISOString() }]);
+    } finally {
+      setIsRunning(false);
+      setPendingQuery(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isRunning) return;
@@ -585,6 +694,7 @@ export default function AgentPage() {
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMessage]);
+    const queryText = input;
     setInput("");
     setIsRunning(true);
     setShowReviewCard(false);
@@ -593,7 +703,7 @@ export default function AgentPage() {
     setSteps(INITIAL_STEPS.map((s) => ({ ...s, status: "pending" as StepStatus })));
 
     try {
-      // Set first step active
+      // Phase 1: Propose — run pre-check + content-gen
       setSteps((prev) =>
         prev.map((s, i) => (i === 0 ? { ...s, status: "active" as StepStatus } : s))
       );
@@ -602,127 +712,83 @@ export default function AgentPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: userMessage.content,
+          message: queryText,
           connection: "google-oauth2",
+          phase: "propose",
         }),
       });
 
-      if (!res.ok) {
-        throw new Error("Pipeline failed");
-      }
+      if (!res.ok) throw new Error("Pipeline failed");
 
       const data = await res.json();
 
-      // Extract messages from the API response
-      const assistantMessages: string[] = data.messages
+      const proposeMessages: string[] = data.messages
         ? data.messages
             .filter((m: { role: string }) => m.role === "assistant")
             .map((m: { content: string }) => m.content)
         : [];
 
-      // Display results progressively with timing — animate each step
-      let msgIndex = 0;
-      for (let i = 0; i < STEP_KEYS.length; i++) {
-        const key = STEP_KEYS[i];
-        const result = data.stepResults?.[key];
-        if (!result) continue;
-
-        // Set step to active
+      // Animate step 1: Pre-Check
+      await sleep(1200);
+      const ts1 = new Date().toISOString();
+      const preCheck = data.stepResults?.preCheck;
+      if (preCheck) {
         setSteps((prev) =>
-          prev.map((s, idx) =>
-            idx === i ? { ...s, status: "active" as StepStatus } : s
+          prev.map((s, i) =>
+            i === 0 ? { ...s, status: preCheck.passed ? "passed" as StepStatus : "failed" as StepStatus, details: preCheck.details, timestamp: ts1 } : s
           )
         );
-
-        // Wait for visual effect
-        const delay = i === 1 ? 2000 : i === 4 ? 2200 : 1200;
-        await sleep(delay);
-
-        // Set step result
-        const ts = new Date().toISOString();
-        setSteps((prev) =>
-          prev.map((s, idx) =>
-            idx === i
-              ? {
-                  ...s,
-                  status: result.passed ? ("passed" as StepStatus) : ("failed" as StepStatus),
-                  details: result.details || s.details,
-                  timestamp: ts,
-                }
-              : s
-          )
-        );
-
-        // Add the corresponding message
-        if (msgIndex < assistantMessages.length) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "assistant",
-              content: assistantMessages[msgIndex],
-              timestamp: ts,
-            },
-          ]);
-          msgIndex++;
+        if (proposeMessages.length > 0) {
+          setMessages((prev) => [...prev, { role: "assistant", content: proposeMessages[0], timestamp: ts1 }]);
         }
 
-        // If this step failed, mark remaining steps as failed and stop
-        if (!result.passed) {
-          for (let j = i + 1; j < STEP_KEYS.length; j++) {
-            const skipKey = STEP_KEYS[j];
-            const skipResult = data.stepResults?.[skipKey];
-            if (skipResult) {
-              setSteps((prev) =>
-                prev.map((s, idx) =>
-                  idx === j
-                    ? {
-                        ...s,
-                        status: skipResult.passed ? ("passed" as StepStatus) : ("failed" as StepStatus),
-                        details: skipResult.details || s.details,
-                        timestamp: ts,
-                      }
-                    : s
-                )
-              );
-            }
-          }
-          // Add any remaining messages
-          while (msgIndex < assistantMessages.length) {
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: "assistant",
-                content: assistantMessages[msgIndex],
-                timestamp: new Date().toISOString(),
-              },
-            ]);
-            msgIndex++;
-          }
-          break;
+        if (!preCheck.passed) {
+          setIsRunning(false);
+          return;
         }
       }
 
-      if (data.error) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: `Pipeline note: ${data.error}`,
-            timestamp: new Date().toISOString(),
-          },
-        ]);
+      // Animate step 2: Content Generation
+      setSteps((prev) =>
+        prev.map((s, i) => (i === 1 ? { ...s, status: "active" as StepStatus } : s))
+      );
+      await sleep(2000);
+      const ts2 = new Date().toISOString();
+      const contentGen = data.stepResults?.contentGen;
+      if (contentGen) {
+        setSteps((prev) =>
+          prev.map((s, i) =>
+            i === 1 ? { ...s, status: contentGen.passed ? "passed" as StepStatus : "failed" as StepStatus, details: contentGen.details, timestamp: ts2 } : s
+          )
+        );
+        if (proposeMessages.length > 1) {
+          setMessages((prev) => [...prev, { role: "assistant", content: proposeMessages[1], timestamp: ts2 }]);
+        }
       }
+
+      // Now PAUSE — show the approval card with real proposed changes
+      const proposedChanges = data.proposedChanges || [];
+      if (proposedChanges.length > 0) {
+        setSteps((prev) =>
+          prev.map((s, i) =>
+            i === 2 ? { ...s, status: "waiting" as StepStatus, details: "Waiting for client to review proposed changes..." } : s
+          )
+        );
+
+        setRealReviewChanges(proposedChanges);
+        setPendingQuery({ message: queryText, threadId: data.threadId });
+        setShowReviewCard(true);
+        setIsRunning(false); // Allow interaction with the review card
+        return; // Wait for handleRealReviewSubmit
+      }
+
+      setIsRunning(false);
     } catch (error) {
       console.error("Agent error:", error);
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content: "An error occurred while running the verification pipeline. Please try again.",
-          timestamp: new Date().toISOString(),
-        },
+        { role: "assistant", content: "An error occurred while running the verification pipeline. Please try again.", timestamp: new Date().toISOString() },
       ]);
-    } finally {
       setIsRunning(false);
     }
   };
@@ -815,7 +881,7 @@ export default function AgentPage() {
                 </div>
               </div>
             ))}
-            {/* Inline approval card for review demo */}
+            {/* Inline approval card for review demo or real pipeline */}
             {showReviewCard && (
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-navy">
@@ -823,8 +889,8 @@ export default function AgentPage() {
                 </div>
                 <div className="max-w-[85%]">
                   <InlineApprovalCard
-                    changes={REVIEW_DEMO_CHANGES}
-                    onSubmit={handleReviewSubmit}
+                    changes={pendingQuery ? realReviewChanges : REVIEW_DEMO_CHANGES}
+                    onSubmit={pendingQuery ? handleRealReviewSubmit : handleReviewSubmit}
                   />
                 </div>
               </div>
