@@ -37,10 +37,12 @@ A client has asked: "${state.userRequest}"
 
 Their connected platform is: ${state.connection}
 
-Run a GBP Audit and generate 2-3 specific proposed changes based on the client's request. For each change, provide:
+The connected business is the client's real Google Business Profile. Since we cannot fetch the actual listing data yet (API access pending), use realistic example current values that a typical local business might have — something brief, generic, and clearly not optimized. Do NOT use brackets or placeholder tokens like "[service type]" — write actual text.
+
+Generate 2-3 specific proposed changes. For each change, provide:
 - field: The specific GBP field (e.g., "Business Description", "Business Hours", "Primary Category", "Additional Categories", "Services")
-- current: A generic current value for that field (e.g., "No description set", "Mon-Fri 9-5", "Missing secondary categories"). Do NOT invent a specific business type or industry — keep current values generic since we haven't fetched the actual listing yet.
-- proposed: The Signal & Structure optimized value — written to maximize AI discoverability, local SEO, and conversion. Tailor the proposed changes to the client's specific request.
+- current: A realistic but unoptimized value (e.g., "Local business serving the community since 2015", "Mon-Fri 9:00 AM - 5:00 PM", "Marketing agency")
+- proposed: The Signal & Structure optimized value — written to maximize AI discoverability, local SEO, and conversion. Make the proposed changes specific, detailed, and clearly better than the current values.
 - platform: "Google Business Profile"
 
 Signal & Structure optimization principles:

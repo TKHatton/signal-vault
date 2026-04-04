@@ -587,6 +587,7 @@ export default function AgentPage() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsRunning(true);
+    setShowReviewCard(false);
 
     // Reset steps
     setSteps(INITIAL_STEPS.map((s) => ({ ...s, status: "pending" as StepStatus })));
@@ -612,32 +613,93 @@ export default function AgentPage() {
 
       const data = await res.json();
 
-      // Update steps based on results
-      const updatedSteps = [...INITIAL_STEPS];
+      // Extract messages from the API response
+      const assistantMessages: string[] = data.messages
+        ? data.messages
+            .filter((m: { role: string }) => m.role === "assistant")
+            .map((m: { content: string }) => m.content)
+        : [];
+
+      // Display results progressively with timing — animate each step
+      let msgIndex = 0;
       for (let i = 0; i < STEP_KEYS.length; i++) {
         const key = STEP_KEYS[i];
         const result = data.stepResults?.[key];
-        if (result) {
-          updatedSteps[i] = {
-            ...updatedSteps[i],
-            status: result.passed ? "passed" : "failed",
-            details: result.details || updatedSteps[i].details,
-            timestamp: result.timestamp,
-          };
-        }
-      }
-      setSteps(updatedSteps);
+        if (!result) continue;
 
-      // Add assistant messages
-      if (data.messages) {
-        const assistantMsgs: Message[] = data.messages
-          .filter((m: { role: string }) => m.role === "assistant")
-          .map((m: { content: string }) => ({
-            role: "assistant" as const,
-            content: m.content,
-            timestamp: new Date().toISOString(),
-          }));
-        setMessages((prev) => [...prev, ...assistantMsgs]);
+        // Set step to active
+        setSteps((prev) =>
+          prev.map((s, idx) =>
+            idx === i ? { ...s, status: "active" as StepStatus } : s
+          )
+        );
+
+        // Wait for visual effect
+        const delay = i === 1 ? 2000 : i === 4 ? 2200 : 1200;
+        await sleep(delay);
+
+        // Set step result
+        const ts = new Date().toISOString();
+        setSteps((prev) =>
+          prev.map((s, idx) =>
+            idx === i
+              ? {
+                  ...s,
+                  status: result.passed ? ("passed" as StepStatus) : ("failed" as StepStatus),
+                  details: result.details || s.details,
+                  timestamp: ts,
+                }
+              : s
+          )
+        );
+
+        // Add the corresponding message
+        if (msgIndex < assistantMessages.length) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: assistantMessages[msgIndex],
+              timestamp: ts,
+            },
+          ]);
+          msgIndex++;
+        }
+
+        // If this step failed, mark remaining steps as failed and stop
+        if (!result.passed) {
+          for (let j = i + 1; j < STEP_KEYS.length; j++) {
+            const skipKey = STEP_KEYS[j];
+            const skipResult = data.stepResults?.[skipKey];
+            if (skipResult) {
+              setSteps((prev) =>
+                prev.map((s, idx) =>
+                  idx === j
+                    ? {
+                        ...s,
+                        status: skipResult.passed ? ("passed" as StepStatus) : ("failed" as StepStatus),
+                        details: skipResult.details || s.details,
+                        timestamp: ts,
+                      }
+                    : s
+                )
+              );
+            }
+          }
+          // Add any remaining messages
+          while (msgIndex < assistantMessages.length) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                content: assistantMessages[msgIndex],
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+            msgIndex++;
+          }
+          break;
+        }
       }
 
       if (data.error) {
@@ -645,7 +707,7 @@ export default function AgentPage() {
           ...prev,
           {
             role: "assistant",
-            content: `Pipeline error: ${data.error}`,
+            content: `Pipeline note: ${data.error}`,
             timestamp: new Date().toISOString(),
           },
         ]);
