@@ -7,6 +7,7 @@ import {
   Bot,
   Activity,
   FileCheck,
+  ClipboardCheck,
   Settings,
   Lock,
   Menu,
@@ -17,6 +18,7 @@ import { useState } from "react";
 const navItems = [
   { href: "/vault", label: "Connected Accounts", icon: Shield },
   { href: "/agent", label: "Agent Workspace", icon: Bot },
+  { href: "/approve", label: "Review Changes", icon: ClipboardCheck },
   { href: "/activity", label: "Activity Log", icon: Activity },
   { href: "/reports", label: "Trust Reports", icon: FileCheck },
   { href: "/settings", label: "Settings", icon: Settings },

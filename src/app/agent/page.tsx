@@ -12,8 +12,9 @@ import {
   Bot,
   Play,
   ShieldOff,
+  ClipboardCheck,
 } from "lucide-react";
-import { VerificationStepState, StepStatus } from "@/lib/types";
+import { VerificationStepState, StepStatus, ApprovalDecision } from "@/lib/types";
 
 const INITIAL_STEPS: VerificationStepState[] = [
   { step: "pre_check", label: "Pre-Check", status: "pending", details: "Validate token scope and simulate request" },
@@ -161,6 +162,156 @@ const DEMO_STEPS_REVOCATION = [
   },
 ];
 
+// Inline review card proposed changes
+const REVIEW_DEMO_CHANGES = [
+  {
+    field: "Business Description",
+    current: "We are a digital marketing agency helping businesses grow online.",
+    proposed: "Signal & Structure AI helps local businesses become discoverable by AI assistants like ChatGPT, Gemini, and Perplexity. We optimize Google Business Profiles, structured data, and content for the AI-first search landscape.",
+    platform: "Google Business Profile",
+  },
+  {
+    field: "Business Categories",
+    current: "Marketing agency",
+    proposed: 'Marketing agency, Internet marketing service, Business management consultant',
+    platform: "Google Business Profile",
+  },
+  {
+    field: "Business Hours",
+    current: "Mon-Fri 9:00 AM - 5:00 PM",
+    proposed: "Mon-Fri 8:00 AM - 6:00 PM, Sat 10:00 AM - 2:00 PM",
+    platform: "Google Business Profile",
+  },
+];
+
+function InlineApprovalCard({
+  changes,
+  onSubmit,
+}: {
+  changes: typeof REVIEW_DEMO_CHANGES;
+  onSubmit: (approved: number, rejected: number, comment: string) => void;
+}) {
+  const [decisions, setDecisions] = useState<ApprovalDecision[]>(
+    changes.map(() => "pending")
+  );
+  const [comment, setComment] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const approvedCount = decisions.filter((d) => d === "approved").length;
+  const rejectedCount = decisions.filter((d) => d === "rejected").length;
+  const allDecided = decisions.every((d) => d !== "pending");
+
+  const handleSubmit = () => {
+    setSubmitted(true);
+    onSubmit(approvedCount, rejectedCount, comment);
+  };
+
+  if (submitted) {
+    return (
+      <div className="bg-green/5 border border-green/20 rounded-xl p-4 text-sm">
+        <div className="flex items-center gap-2 text-green font-medium mb-1">
+          <CheckCircle size={14} />
+          Review submitted
+        </div>
+        <div className="text-navy/70">
+          {approvedCount} approved, {rejectedCount} rejected.
+          {comment && <span className="italic"> Note: &ldquo;{comment}&rdquo;</span>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white border border-copper/20 rounded-xl overflow-hidden">
+      <div className="px-4 py-3 bg-copper/5 border-b border-copper/15">
+        <div className="flex items-center gap-2 text-sm font-semibold text-navy">
+          <ClipboardCheck size={14} className="text-copper" />
+          Review Proposed Changes
+        </div>
+        <div className="text-xs text-warm-gray mt-0.5">
+          Approve or reject each change individually before the agent proceeds.
+        </div>
+      </div>
+
+      <div className="divide-y divide-border">
+        {changes.map((change, i) => (
+          <div key={i} className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-semibold text-navy">{change.field}</span>
+              <span className="text-[9px] font-mono text-warm-gray bg-stone px-1.5 py-0.5 rounded">
+                {change.platform}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-2 mb-3">
+              <div className="bg-stone rounded-lg p-2.5 text-xs text-navy/60">
+                <span className="text-[9px] font-mono text-warm-gray uppercase">Current: </span>
+                {change.current}
+              </div>
+              <div className="bg-copper/5 border border-copper/10 rounded-lg p-2.5 text-xs text-navy">
+                <span className="text-[9px] font-mono text-copper uppercase">Proposed: </span>
+                {change.proposed}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() =>
+                  setDecisions((prev) => prev.map((d, j) => (j === i ? "approved" : d)))
+                }
+                className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-all ${
+                  decisions[i] === "approved"
+                    ? "bg-green text-white"
+                    : "bg-green/10 text-green hover:bg-green/20"
+                }`}
+              >
+                <CheckCircle size={12} />
+                Approve
+              </button>
+              <button
+                onClick={() =>
+                  setDecisions((prev) => prev.map((d, j) => (j === i ? "rejected" : d)))
+                }
+                className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-all ${
+                  decisions[i] === "rejected"
+                    ? "bg-red text-white"
+                    : "bg-red/10 text-red hover:bg-red/20"
+                }`}
+              >
+                <XCircle size={12} />
+                Reject
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-4 border-t border-border">
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="Add instructions for the agent (optional)..."
+          className="w-full bg-stone rounded-lg px-3 py-2 text-xs text-navy placeholder:text-warm-gray/60 outline-none focus:ring-2 focus:ring-copper/30 resize-none mb-3"
+          rows={2}
+        />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleSubmit}
+            disabled={!allDecided}
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-copper text-white rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-copper/90 transition-colors"
+          >
+            <Send size={12} />
+            Submit Review ({approvedCount} approved, {rejectedCount} rejected)
+          </button>
+          {!allDecided && (
+            <span className="text-[10px] text-warm-gray">
+              Review all changes to submit
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AgentPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -173,6 +324,8 @@ export default function AgentPage() {
   const [input, setInput] = useState("");
   const [steps, setSteps] = useState<VerificationStepState[]>(INITIAL_STEPS);
   const [isRunning, setIsRunning] = useState(false);
+  const [showReviewCard, setShowReviewCard] = useState(false);
+  const [reviewDemoPhase, setReviewDemoPhase] = useState<"idle" | "pre" | "review" | "post">("idle");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -181,9 +334,186 @@ export default function AgentPage() {
 
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+  const runReviewDemo = async () => {
+    if (isRunning) return;
+    setIsRunning(true);
+    setShowReviewCard(false);
+    setReviewDemoPhase("pre");
+
+    // Add user message
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        content: "Optimize my Google Business Profile for AI discoverability",
+        timestamp: new Date().toISOString(),
+      },
+      {
+        role: "system",
+        content: "Running demo: Client reviews and approves individual changes",
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+
+    // Reset steps
+    setSteps(INITIAL_STEPS.map((s) => ({ ...s, status: "pending" as StepStatus })));
+
+    // Step 1: Pre-Check
+    setSteps((prev) =>
+      prev.map((s, i) => (i === 0 ? { ...s, status: "active" as StepStatus } : s))
+    );
+    await sleep(1200);
+    const ts1 = new Date().toISOString();
+    setSteps((prev) =>
+      prev.map((s, i) =>
+        i === 0
+          ? { ...s, status: "passed", details: "Token validated. Scope: google-oauth2. Expiry: valid for 55 minutes.", timestamp: ts1 }
+          : s
+      )
+    );
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: "Pre-check passed. Token Vault token is valid and correctly scoped.", timestamp: ts1 },
+    ]);
+
+    // Step 2: Content Generation
+    setSteps((prev) =>
+      prev.map((s, i) => (i === 1 ? { ...s, status: "active" as StepStatus } : s))
+    );
+    await sleep(2000);
+    const ts2 = new Date().toISOString();
+    setSteps((prev) =>
+      prev.map((s, i) =>
+        i === 1
+          ? { ...s, status: "passed", details: "Generated 3 proposed changes using S&S methodology.", timestamp: ts2 }
+          : s
+      )
+    );
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: "Content generated. 3 proposed changes ready for your review.\n\nPlease review each change individually below. You can approve, reject, or add comments before the agent proceeds.", timestamp: ts2 },
+    ]);
+
+    // Step 3: Human Review — show inline approval card
+    setSteps((prev) =>
+      prev.map((s, i) => (i === 2 ? { ...s, status: "waiting" as StepStatus, details: "Waiting for client to review proposed changes..." } : s))
+    );
+    setShowReviewCard(true);
+    setReviewDemoPhase("review");
+    setIsRunning(false); // Allow interaction with the review card
+  };
+
+  const handleReviewSubmit = async (approved: number, rejected: number, comment: string) => {
+    setIsRunning(true);
+    setShowReviewCard(false);
+    setReviewDemoPhase("post");
+
+    const ts3 = new Date().toISOString();
+    setSteps((prev) =>
+      prev.map((s, i) =>
+        i === 2
+          ? { ...s, status: "passed", details: `Client reviewed: ${approved} approved, ${rejected} rejected.`, timestamp: ts3 }
+          : s
+      )
+    );
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: `Review received: ${approved} changes approved, ${rejected} rejected.${comment ? `\n\nClient note: "${comment}"` : ""}\n\nRe-validating permissions before executing approved changes...`,
+        timestamp: ts3,
+      },
+    ]);
+
+    // Step 4: Permission Validation
+    setSteps((prev) =>
+      prev.map((s, i) => (i === 3 ? { ...s, status: "active" as StepStatus } : s))
+    );
+    await sleep(1000);
+    const ts4 = new Date().toISOString();
+    setSteps((prev) =>
+      prev.map((s, i) =>
+        i === 3
+          ? { ...s, status: "passed", details: "Token re-validated. Still active and scoped correctly.", timestamp: ts4 }
+          : s
+      )
+    );
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: "Permission re-validation passed. Token is still valid. Client has not revoked access. Executing only approved changes...", timestamp: ts4 },
+    ]);
+
+    // Step 5: Execution (only approved changes)
+    setSteps((prev) =>
+      prev.map((s, i) => (i === 4 ? { ...s, status: "active" as StepStatus } : s))
+    );
+    await sleep(2200);
+    const ts5 = new Date().toISOString();
+    setSteps((prev) =>
+      prev.map((s, i) =>
+        i === 4
+          ? { ...s, status: "passed", details: `Executed ${approved} of 3 changes via Token Vault. ${rejected} rejected changes were NOT applied.`, timestamp: ts5 }
+          : s
+      )
+    );
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: `Execution complete.\n\nApplied ${approved} approved changes via Token Vault token.\nSkipped ${rejected} rejected ${rejected === 1 ? "change" : "changes"} — not applied per client decision.\n\nNo unauthorized modifications. Running post-check...`,
+        timestamp: ts5,
+      },
+    ]);
+
+    // Step 6: Post-Check
+    setSteps((prev) =>
+      prev.map((s, i) => (i === 5 ? { ...s, status: "active" as StepStatus } : s))
+    );
+    await sleep(1000);
+    const ts6 = new Date().toISOString();
+    setSteps((prev) =>
+      prev.map((s, i) =>
+        i === 5
+          ? { ...s, status: "passed", details: "Verified: only approved changes applied. No scope violations.", timestamp: ts6 }
+          : s
+      )
+    );
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: "Post-check passed. Only approved changes were applied. No scope violations. No data leaks.", timestamp: ts6 },
+    ]);
+
+    // Step 7: Audit
+    setSteps((prev) =>
+      prev.map((s, i) => (i === 6 ? { ...s, status: "active" as StepStatus } : s))
+    );
+    await sleep(800);
+    const ts7 = new Date().toISOString();
+    setSteps((prev) =>
+      prev.map((s, i) =>
+        i === 6
+          ? { ...s, status: "passed", details: "Trust report generated. Report ID: TR-demo-review-001.", timestamp: ts7 }
+          : s
+      )
+    );
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: `Audit complete. Trust report generated.\n\nSummary:\n- Steps passed: 7/7\n- Changes proposed: 3\n- Changes approved: ${approved}\n- Changes rejected: ${rejected}\n- Changes applied: ${approved}\n- Scope violations: 0\n- Data leaks: 0\n\nThe client reviewed each change individually. Only approved changes were executed. The full decision record is saved in the trust report.`,
+        timestamp: ts7,
+      },
+    ]);
+
+    setIsRunning(false);
+    setReviewDemoPhase("idle");
+  };
+
   const runDemo = async (mode: "success" | "revocation") => {
     if (isRunning) return;
     setIsRunning(true);
+    setShowReviewCard(false);
+    setReviewDemoPhase("idle");
 
     const demoSteps = mode === "success" ? DEMO_STEPS_SUCCESS : DEMO_STEPS_REVOCATION;
     const demoLabel = mode === "success" ? "Audit my Google Business Profile and suggest improvements" : "Update my business description and service area";
@@ -336,8 +666,8 @@ export default function AgentPage() {
   };
 
   return (
-    <div>
-      <div className="mb-6">
+    <div className="flex flex-col" style={{ height: "calc(100vh - 48px)" }}>
+      <div className="mb-4 flex-shrink-0">
         <h1 className="page-title mb-2">Agent Workspace</h1>
         <p className="text-warm-gray">
           Tell the agent what needs updating. Every action goes through 7
@@ -346,7 +676,7 @@ export default function AgentPage() {
       </div>
 
       {/* Demo mode buttons */}
-      <div className="mb-4 flex flex-wrap gap-3">
+      <div className="mb-4 flex flex-wrap gap-3 flex-shrink-0">
         <button
           onClick={() => runDemo("success")}
           disabled={isRunning}
@@ -363,14 +693,22 @@ export default function AgentPage() {
           <ShieldOff size={14} />
           Try Demo: Mid-Session Revocation
         </button>
+        <button
+          onClick={runReviewDemo}
+          disabled={isRunning && reviewDemoPhase !== "review"}
+          className="flex items-center gap-2 px-4 py-2.5 bg-copper/10 text-copper border border-copper/20 rounded-lg text-sm font-medium hover:bg-copper/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ClipboardCheck size={14} />
+          Try Demo: Client Reviews Changes
+        </button>
         <span className="text-xs text-warm-gray self-center">
           Demos simulate the pipeline with realistic data and timing
         </span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
         {/* Chat panel */}
-        <div className="lg:col-span-2 card-static flex flex-col" style={{ height: "calc(100vh - 260px)" }}>
+        <div className="lg:col-span-2 card-static flex flex-col min-h-0">
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg, i) => (
@@ -415,6 +753,20 @@ export default function AgentPage() {
                 </div>
               </div>
             ))}
+            {/* Inline approval card for review demo */}
+            {showReviewCard && (
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-navy">
+                  <Bot size={14} className="text-white" />
+                </div>
+                <div className="max-w-[85%]">
+                  <InlineApprovalCard
+                    changes={REVIEW_DEMO_CHANGES}
+                    onSubmit={handleReviewSubmit}
+                  />
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 

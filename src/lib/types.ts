@@ -159,6 +159,23 @@ export interface ProposedChange {
   platform: string;
 }
 
+// --- Human Approval (Granular Review) ---
+
+export type ApprovalDecision = 'approved' | 'rejected' | 'pending';
+
+export interface ChangeApproval {
+  change: ProposedChange;
+  decision: ApprovalDecision;
+}
+
+export interface ReviewResult {
+  changes: ChangeApproval[];
+  comment: string;
+  approvedCount: number;
+  rejectedCount: number;
+  submittedAt: string;
+}
+
 // --- Navigation ---
 
 export interface NavItem {

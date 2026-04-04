@@ -1,4 +1,4 @@
-# Signal Vault — 3-Minute Demo Script
+# Signal Vault — 3-Minute Demo Script (v3)
 
 **Hackathon:** Authorized to Act: Auth0 for AI Agents
 **Product:** Signal Vault by Signal & Structure AI
@@ -6,83 +6,89 @@
 
 ---
 
-## 0:00–0:20 — The Problem (Talking Head or Voiceover)
+## 0:00–0:15 — The Problem (Talking Head or Voiceover)
 
-> "Right now, when an AI agency needs access to a client's Google Business Profile or WordPress site, they ask for a password in an email. That's insecure, unauditable, and irrevocable. Signal Vault fixes this with Auth0 Token Vault."
+> "When an AI agency needs access to a client's Google Business Profile, the industry standard is asking for a password in an email. That's insecure, unauditable, and irrevocable. Signal Vault fixes this with Auth0 Token Vault."
 
 ---
 
-## 0:20–0:50 — One-Click Connect (Screen Recording)
+## 0:15–0:40 — One-Click Connect (Screen Recording)
 
 **Show:** Signal Vault landing page → Click Login → Auth0 Universal Login
 
-> "The client logs into Signal Vault. No separate account to create — Auth0 handles authentication."
+> "The client logs in — Auth0 handles authentication. No separate account."
 
-**Show:** Vault page with three connection cards → Click "Connect Google"
+**Show:** Vault page → Click "Connect Google"
 
-> "One click. That's it. No passwords, no API keys, no client credentials shared over email. Auth0 Token Vault handles the entire OAuth flow — the token is encrypted, auto-refreshing, and the client never sees it."
+> "One click. No passwords, no API keys. Auth0 Token Vault handles the OAuth flow — the token is encrypted, auto-refreshing, and never visible to anyone."
 
-**Show:** Google consent screen → Click Allow → Redirected back to Vault showing "CONNECTED"
+**Show:** Google consent screen → Allow → Vault shows "CONNECTED"
 
-> "The client clicked Allow. Their Google Business Profile is now accessible to our AI agents — securely, through Token Vault."
-
----
-
-## 0:50–1:30 — The 7-Step Verification Pipeline (Screen Recording)
-
-**Show:** Click "Agent Workspace" in sidebar
-
-> "Here's where Signal Vault is different from every other Token Vault integration. We don't just get a token and fire. Every action goes through a 7-step verification pipeline."
-
-**Show:** Type "Audit my Google Business Profile and suggest improvements" → Submit
-
-> "Watch the right side — every step lights up in real time."
-
-**Show:** Pipeline running — Pre-Check (green) → Content Generation (green) → Human Approval (green)
-
-> "Step 1: Pre-check validates the token is fresh and scoped correctly. Step 2: AI generates proposed changes using our methodology. Step 3: The client sees exactly what will change and approves it. Nothing happens without explicit consent."
-
-**Show:** Permission Validation (green) → Execution → Audit (green)
-
-> "Step 4: We re-validate the token right before execution — because a client could revoke access between approval and execution. Step 5: The agent executes using the Token Vault token. Step 6 and 7: Post-check and audit. A full trust report is generated and saved."
+> "Done. Their Google Business Profile is now accessible to our agents — securely, through Token Vault."
 
 ---
 
-## 1:30–2:00 — The Audit Trail (Screen Recording)
+## 0:40–1:30 — The 7-Step Pipeline with Client Approval (Screen Recording — The Centerpiece)
 
-**Show:** Click "Activity Log" → Show Connected/Disconnected events with timestamps
+**Show:** Click "Agent Workspace" → Click "Try Demo: Client Reviews Changes"
 
-> "Every action is logged. The client sees exactly when their account was accessed, what was done, and by which agent. Full transparency."
+> "Here's where Signal Vault is different. Every action goes through a 7-step verification pipeline. Watch the right side — every step lights up in real time."
+
+**Show:** Pre-Check passes → Content Generation runs
+
+> "Step 1 validates the token. Step 2 — AI generates proposed changes using our methodology."
+
+**Show:** Pipeline pauses at Human Approval — inline review card appears in chat
+
+> "Now here's the key. The pipeline stops. The client sees exactly what the agent wants to change — each change individually, with the current value and the proposed value. Nothing happens without explicit consent."
+
+**Show:** Client approves 2 changes, rejects 1 (Business Hours), adds comment: "Don't change my hours"
+
+> "The client approves two changes, rejects one, and leaves a note: 'Don't change my hours.' The agent respects this — only approved changes move forward."
+
+**Show:** Click Submit Review → Pipeline resumes → Permission Validation → Execution → Post-Check → Audit
+
+> "Step 4 re-validates the token before execution — because access could be revoked between approval and execution. Then only the 2 approved changes are applied. Post-check verifies. Audit generates a trust report."
+
+---
+
+## 1:30–1:50 — The Audit Trail (Screen Recording)
+
+**Show:** Click "Activity Log" → Show events with timestamps
+
+> "Every action is logged. The client sees exactly when their account was accessed, what was done, and by which agent."
 
 **Show:** Click "Trust Reports" → Open a report
 
-> "Each pipeline run generates a trust report. Zero scope violations. Zero data leaks. Zero unauthorized access. This is auditable AI."
+> "Each pipeline run generates a trust report. Zero scope violations. Zero data leaks. This is auditable AI."
 
 ---
 
-## 2:00–2:30 — Mid-Session Revocation (Screen Recording — The Money Shot)
+## 1:50–2:30 — Mid-Session Revocation (Screen Recording — The Money Shot)
 
 > "But here's the real test. What happens when a client revokes access while the agent is working?"
 
-**Show:** Go to Agent Workspace → Submit a new task → While pipeline runs, quickly switch to Connected Accounts → Click "Disconnect"
+**Show:** Go to Agent Workspace → Click "Try Demo: Mid-Session Revocation"
 
-> "The client just revoked access mid-session."
+> "Watch: the pipeline runs, the client approves changes..."
 
-**Show:** Pipeline shows Execution step as RED — "Token Vault returned no token. The client may have revoked access. No changes were made."
+**Show:** Pipeline reaches Permission Validation → RED — "TOKEN REVOKED"
 
-> "The agent stopped immediately. No changes were applied. The revocation was logged. This is how agentic AI should handle credentials — the client is always in control."
+> "The client revoked access. The agent stopped immediately. No changes were applied. The revocation is logged. This is how agentic AI should handle credentials."
 
 ---
 
 ## 2:30–3:00 — The Pitch (Talking Head or Voiceover)
 
-> "Signal Vault isn't a demo. It's the credential layer we're building into our real platform at Signal & Structure AI. We manage Google Business Profiles, WordPress sites, and analytics for local businesses. Every one of those requires access to client accounts."
+> "Signal Vault isn't a demo. It's the credential layer we're building into our real platform at Signal & Structure AI. We manage Google Business Profiles, WordPress sites, and analytics for local businesses."
 
-> "With Auth0 Token Vault, our clients never share a password again. They click Allow. Our AI agents do the work. They see every action. They revoke anytime — and the agent stops cold. That's what 'Authorized to Act' means."
+> "With Auth0 Token Vault, clients never share a password. They click Allow. Our agents do the work. They review every change. They revoke anytime — and the agent stops cold."
 
-**Show:** Signal Vault dashboard one final time
+> "What's next? Granular read-only versus read-write permissions per connection. Client notification toggles — so they get alerted when an agent accesses their account. Exportable trust reports for compliance audits. And multi-platform support — WordPress, LinkedIn, Analytics — all through Token Vault."
 
-> "Signal Vault. Secure credential management for AI agents. Built on Auth0 Token Vault."
+**Show:** Signal Vault dashboard
+
+> "Signal Vault. Built on Auth0 Token Vault. Because 'Authorized to Act' means the client is always in control."
 
 ---
 
@@ -91,6 +97,6 @@
 - **Screen resolution:** 1920x1080 or 1280x720
 - **Browser:** Clean Chrome profile, no extensions visible
 - **Pre-load:** Have Signal Vault open, logged in, Google connected
-- **Practice the disconnect timing:** You have ~10 seconds while the pipeline runs to switch tabs and click Disconnect
+- **Key moment:** The Client Reviews Changes demo — practice approving 2, rejecting 1 with a comment
 - **Voiceover:** Record separately and overlay, or use a screen recorder with mic
 - **Tools:** OBS Studio (free), Loom, or QuickTime (Mac)
