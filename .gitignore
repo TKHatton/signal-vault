@@ -46,9 +46,12 @@ deno.lock
 # Internal planning/session docs (not for public repo)
 DEMO_SCRIPT.md
 DEMO_SCRIPTS.md
+DEMO_SCRIPT_EASY.md
 SESSION_LOG.md
 NEXT-SESSION-PROMPT.md
 SIGNAL_VAULT_SUBMISSION.md
 SIGNAL_VAULT_SUBMISSION_V2.md
 DEVPOST_CHECKLIST.md
 BLOG_POSTS.md
+ELEVENLABS_SCRIPT.md
+architecture-diagram.html
